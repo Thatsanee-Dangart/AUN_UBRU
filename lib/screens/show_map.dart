@@ -23,7 +23,7 @@ class _ShowMapState extends State<ShowMap> {
         position: ubruLatLng,
         markerId: MarkerId('UBRU'),
         infoWindow: InfoWindow(
-          title: 'ม.ราชภัฏอุบล',
+          title: 'มหาวิทยาลัยราชภัฏอุบล',
           snippet: 'มหาวิทยาลัยที่ยอดเยี่ยม',
         ),icon: BitmapDescriptor.defaultMarkerWithHue(100.0)
       ),
