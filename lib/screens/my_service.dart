@@ -1,8 +1,13 @@
+import 'dart:async';
+import 'package:aun_ubru/models/product_model.dart';
+import 'package:aun_ubru/screens/detail.dart';
 import 'package:aun_ubru/screens/home.dart';
 import 'package:aun_ubru/screens/list_product.dart';
 import 'package:aun_ubru/screens/show_map.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:barcode_scan/barcode_scan.dart';
 
 class MyService extends StatefulWidget {
   @override
@@ -16,13 +21,54 @@ class _MyServiceState extends State<MyService> {
   double mySizeIcon = 36.0;
   double h2 = 18.0;
   Widget myWidget = ListProduct(); //import  ListProduct
+  List<ProductModel> productModels=[];
 
   // Method
   @override
   void initState() {
     super.initState();
     findDisplayName();
+    readAllData();
   }
+
+  Future<void> scanQRcode() async {
+    try {
+      String barcode = await BarcodeScanner.scan();
+      print('barcode = $barcode');
+
+      if (productModels.length != 0) {
+        for (var myProductModel in productModels) {
+          if (barcode == myProductModel.qrCode) {
+            print('barcode Map');
+
+            MaterialPageRoute materialPageRoute = MaterialPageRoute(
+                builder: (BuildContext context) => Detail(
+                      productModel: myProductModel,
+                    ));
+                    Navigator.of(context).push(materialPageRoute);
+          }
+        }
+      }
+    } catch (e) {}
+  }
+  Future readAllData() async {
+    Firestore firestore = Firestore.instance;
+    CollectionReference collectionReference = firestore.collection('Product');
+    StreamSubscription<QuerySnapshot> subscription =
+        await collectionReference.snapshots().listen((response) {
+      List<DocumentSnapshot> snapshots = response.documents;
+
+      for (var snapshot in snapshots) {
+        ProductModel productModel = ProductModel(
+            snapshot.data['Name'],
+            snapshot.data['Detail'],
+            snapshot.data['Path'],
+            snapshot.data['QRcode']);
+        productModels.add(productModel);
+      }
+    });
+  }
+
 
   Widget listProductMenu() {
     return ListTile(
@@ -33,17 +79,18 @@ class _MyServiceState extends State<MyService> {
       title: Text(
         'List Product',
         style: TextStyle(fontSize: h2),
-      ),subtitle:Text('Show List All Product'),
-      onTap: (){
+      ),
+      subtitle: Text('Show List All Product'),
+      onTap: () {
         setState(() {
-          myWidget =ListProduct();
+          myWidget = ListProduct();
           Navigator.of(context).pop();
         });
       },
     );
   }
 
-   Widget mapMenu() {
+  Widget mapMenu() {
     return ListTile(
       leading: Icon(
         Icons.map,
@@ -52,14 +99,16 @@ class _MyServiceState extends State<MyService> {
       title: Text(
         'Showmap',
         style: TextStyle(fontSize: h2),
-      ),subtitle:Text('Show Current Location Map'),
-      onTap: (){setState(() {
-       myWidget =ShowMap(); 
-       Navigator.of(context).pop();
-      });},
+      ),
+      subtitle: Text('Show Current Location Map'),
+      onTap: () {
+        setState(() {
+          myWidget = ShowMap();
+          Navigator.of(context).pop();
+        });
+      },
     );
   }
-
 
   Widget signOutMenu() {
     return ListTile(
@@ -139,10 +188,30 @@ class _MyServiceState extends State<MyService> {
         children: <Widget>[
           myHeadDrawer(),
           listProductMenu(),
+          qrCodeMenu(),
           mapMenu(),
           signOutMenu(),
         ],
       ),
+    );
+  }
+
+   Widget qrCodeMenu() {
+    return ListTile(
+      leading: Icon(
+        Icons.camera,
+        size: mySizeIcon,
+      ),
+      title: Text(
+        'Read QR code',
+        style: TextStyle(fontSize: h2),
+      ),
+      subtitle: Text('For Read QR code by Camera'),
+      trailing: Icon(Icons.navigate_next),
+      onTap: () {
+        scanQRcode();
+        Navigator.of(context).pop();
+      },
     );
   }
 
